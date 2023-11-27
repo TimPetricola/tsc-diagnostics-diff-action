@@ -11,20 +11,23 @@ export async function run(): Promise<void> {
   const treshold = parseInt(core.getInput('treshold'), 10) || 300 // ms
   const customCommand = core.getInput('custom-command') || undefined
   const extended = core.getInput('extended') === 'true'
+  const cwd = core.getInput('working-directory') || './'
 
   const shouldLeaveComment = core.getInput('leave-comment') === 'true'
   const githubToken: string | undefined =
     core.getInput('github-token') || undefined
 
   try {
-    const packageManager = await detect()
+    const packageManager = await detect({cwd})
     core.debug(`package manager: ${packageManager}`)
 
     let command = customCommand
     if (!command) {
       core.debug(`Getting location of tsc binary`)
       const prefix = (
-        await exec.getExecOutput(`${packageManager} prefix`)
+        await exec.getExecOutput(`${packageManager} prefix`, [], {
+          cwd
+        })
       ).stdout.trim()
       const tsc = `${prefix}/node_modules/.bin/tsc`
       core.debug(`tsc: ${tsc}, bin: ${prefix}`)
@@ -34,7 +37,7 @@ export async function run(): Promise<void> {
       } --incremental false`
     }
 
-    const newResult = await exec.getExecOutput(command)
+    const newResult = await exec.getExecOutput(command, [], {cwd})
     if (!newResult.stdout.includes('Check time') && customCommand) {
       throw new Error(
         `Custom command '${customCommand}' does not output '--extendedDiagnostics' or '--diagnostics' flag. Please add it to your command.`
@@ -46,18 +49,18 @@ export async function run(): Promise<void> {
 
     core.debug(`installing dependencies with ${packageManager}`)
     if (packageManager === 'yarn') {
-      await exec.exec('yarn')
+      await exec.exec('yarn', [], {cwd})
     } else if (packageManager === 'npm') {
-      await exec.exec('npm', ['install'])
+      await exec.exec('npm', ['install'], {cwd})
     } else if (packageManager === 'pnpm') {
-      await exec.exec('pnpm', ['install'])
+      await exec.exec('pnpm', ['install'], {cwd})
     } else {
       throw new Error(
         `Package manager ${packageManager} is not supported. Please use yarn, npm or pnpm`
       )
     }
 
-    const previousResult = await exec.getExecOutput(command)
+    const previousResult = await exec.getExecOutput(command, [], {cwd})
 
     const diff = compareDiagnostics(
       previousResult.stdout,

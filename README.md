@@ -9,6 +9,7 @@ This GitHub action allows you to measure and track TypeScript performance regres
 - `leave-comment`: Indicates whether the action should leave a comment on a PR. Enabling this requires providing the github-token input (default: false).
 - `github-token`: GitHub API token. Necessary to leave comments on your PRs.
 - `extended`: Indicates whether the actions should use --extendedDiagnostics over --diagnostics (default: false).
+- `working-directory`: Indicates where to run command
 
 ## Usage
 

@@ -24,6 +24,10 @@ inputs:
     required: false
     description: 'Indicates whether the actions should use --extendedDiagnostics over --diagnostics'
     default: false
+  working-directory:
+    required: false
+    description: 'Directory where to run checks'
+    default: "./"
 runs:
   using: 'node16'
   main: 'dist/index.js'
