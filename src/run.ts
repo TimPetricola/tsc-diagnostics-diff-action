@@ -148,15 +148,14 @@ const leaveComment = async (body: string, token: string, extended = false) => {
   return createCommentResponse
 }
 
-type Diagnostics = {
-  [key: string]: {
-    value: number
-    unit: 's' | '' | 'K'
-  }
+type Diagnostic = {
+  key: string
+  value: number
+  unit: 's' | '' | 'K'
 }
 
-function parseDiagnostics(input: string): Diagnostics {
-  const diagnostics: Diagnostics = {}
+function parseDiagnostics(input: string): Diagnostic[] {
+  const diagnostics: Diagnostic[] = []
   const lines = input.split('\n')
 
   for (const line of lines) {
@@ -165,20 +164,23 @@ function parseDiagnostics(input: string): Diagnostics {
       const key = parts[0].trim()
       const value = parts[1].trim()
       if (value.endsWith('s')) {
-        diagnostics[key] = {
+        diagnostics.push({
+          key,
           value: parseFloat(value.replace('s', '')),
           unit: 's'
-        }
+        })
       } else if (value.endsWith('K')) {
-        diagnostics[key] = {
+        diagnostics.push({
+          key,
           value: parseInt(value.replace('K', ''), 10),
           unit: 'K'
-        }
+        })
       } else {
-        diagnostics[key] = {
+        diagnostics.push({
+          key,
           value: parseInt(value, 10),
           unit: ''
-        }
+        })
       }
     }
   }
@@ -201,15 +203,15 @@ function compareDiagnostics(
   markdown += '| Metric | Previous | New | Status |\n'
   markdown += '| --- | --- | --- | --- |\n'
 
-  for (const key in currentDiagnostics) {
-    core.debug(`key: ${key}`)
-    const prevValue = previousDiagnostics[key] || 0
-    const currentValue = currentDiagnostics[key] || 0
+  for (const [index, {key}] of currentDiagnostics.entries()) {
+    core.debug(`index: ${index}; key: ${key}`)
+    const prevDiagnostic = previousDiagnostics[index]
+    const currentDiagnostic = currentDiagnostics[index]
 
-    const diff = currentValue.value - prevValue.value
+    const diff = currentDiagnostic.value - prevDiagnostic.value
 
     let diffPercentage =
-      currentValue.value !== 0 ? (diff / currentValue.value) * 100 : 0
+      currentDiagnostic.value !== 0 ? (diff / currentDiagnostic.value) * 100 : 0
 
     if (isNaN(diffPercentage)) diffPercentage = 0
 
@@ -225,9 +227,9 @@ function compareDiagnostics(
       status = diff > 0 ? '▲' : '▼'
     }
 
-    markdown += `| ${key} | ${prevValue.value}${prevValue.unit} | ${
-      currentValue.value
-    }${currentValue.unit} | ${status} (${
+    markdown += `| ${key} | ${prevDiagnostic.value}${prevDiagnostic.unit} | ${
+      currentDiagnostic.value
+    }${currentDiagnostic.unit} | ${status} (${
       diffPercentage > 0 ? '+' : ''
     }${diffPercentage.toFixed(2)}%) |\n`
   }
